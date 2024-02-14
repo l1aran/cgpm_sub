@@ -19,8 +19,8 @@ from math import log
 
 from scipy.special import gammaln
 
-from cgpm.primitives.distribution import DistributionGpm
-from cgpm.utils import general as gu
+from cgpm.src.primitives.distribution import DistributionGpm
+from cgpm.src.utils import general as gu
 
 
 class Crp(DistributionGpm):
@@ -40,7 +40,7 @@ class Crp(DistributionGpm):
         self.counts = OrderedDict()
         # Hyperparameters.
         if hypers is None: hypers = {}
-        self.alpha = hypers.get('alpha', 1.)
+        self.alpha = hypers.get(b'alpha', 1.)
 
     def incorporate(self, rowid, observation, inputs=None):
         DistributionGpm.incorporate(self, rowid, observation, inputs)
@@ -62,7 +62,7 @@ class Crp(DistributionGpm):
         # Do not call DistributionGpm.logpdf since crp allows observed rowid.
         assert not inputs
         assert not constraints
-        assert targets.keys() == self.outputs
+        assert list(targets.keys()) == self.outputs
         x = int(targets[self.outputs[0]])
         if rowid in self.data:
             return 0 if self.data[rowid] == x else -float('inf')
@@ -184,5 +184,5 @@ class Crp(DistributionGpm):
     @staticmethod
     def calc_logpdf_marginal(N, counts, alpha):
         # http://gershmanlab.webfactional.com/pubs/GershmanBlei12.pdf#page=4 (eq 8)
-        return len(counts) * log(alpha) + sum(gammaln(counts.values())) \
+        return len(counts) * log(alpha) + sum(gammaln(list(counts.values()))) \
             + gammaln(alpha) - gammaln(N + alpha)

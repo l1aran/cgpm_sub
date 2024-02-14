@@ -20,13 +20,13 @@ from math import isnan
 
 import numpy as np
 
-from cgpm.cgpm import CGpm
-from cgpm.mixtures.dim import Dim
-from cgpm.network.importance import ImportanceNetwork
-from cgpm.utils import config as cu
-from cgpm.utils import general as gu
-from cgpm.utils.config import cctype_class
-from cgpm.utils.general import merged
+from cgpm.src.cgpm import CGpm
+from cgpm.src.mixtures.dim import Dim
+from cgpm.src.network.importance import ImportanceNetwork
+from cgpm.src.utils import config as cu
+from cgpm.src.utils import general as gu
+from cgpm.src.utils.config import cctype_class
+from cgpm.src.utils.general import merged
 
 
 class View(CGpm):
@@ -95,10 +95,11 @@ class View(CGpm):
             hypers=None if alpha is None else {'alpha': alpha},
             rng=self.rng
         )
-        n_rows = len(self.X[self.X.keys()[0]])
+        n_rows = len(self.X[next(iter(self.X))])
+
         self.crp.transition_hyper_grids([1]*n_rows)
         if Zr is None:
-            for i in xrange(n_rows):
+            for i in range(n_rows):
                 s = self.crp.simulate(i, [self.outputs[0]], None, {-1:0})
                 self.crp.incorporate(i, s, {-1:0})
         else:
@@ -137,13 +138,13 @@ class View(CGpm):
         if reassign:
             self._bulk_incorporate(dim)
         self.dims[dim.index] = dim
-        self.outputs = self.outputs[:1] + self.dims.keys()
+        self.outputs = self.outputs[:1] + list(self.dims.keys())
         return dim.logpdf_score()
 
     def unincorporate_dim(self, dim):
         """Remove dim from this View (does not modify)."""
         del self.dims[dim.index]
-        self.outputs = self.outputs[:1] + self.dims.keys()
+        self.outputs = self.outputs[:1] + list(self.dims.keys())
         return dim.logpdf_score()
 
     def incorporate(self, rowid, observation, inputs=None):
@@ -173,13 +174,13 @@ class View(CGpm):
 
     def unincorporate(self, rowid):
         # Unincorporate from dims.
-        for dim in self.dims.itervalues():
+        for dim in self.dims.values():
             dim.unincorporate(rowid)
         # Account.
         k = self.Zr(rowid)
         self.crp.unincorporate(rowid)
         if k not in self.Nk():
-            for dim in self.dims.itervalues():
+            for dim in self.dims.values():
                 del dim.clusters[k]     # XXX Abstract me!
 
     # XXX Major hack to force values of NaN cells in incorporated rowids.
@@ -223,7 +224,7 @@ class View(CGpm):
     # Inference
 
     def transition(self, N):
-        for _ in xrange(N):
+        for _ in range(N):
             self.transition_rows()
             self.transition_crp_alpha()
             self.transition_dim_hypers()
@@ -234,19 +235,19 @@ class View(CGpm):
 
     def transition_dim_hypers(self, cols=None):
         if cols is None:
-            cols = self.dims.keys()
+            cols = list(self.dims.keys())
         for c in cols:
             self.dims[c].transition_hypers()
 
     def transition_dim_grids(self, cols=None):
         if cols is None:
-            cols = self.dims.keys()
+            cols = list(self.dims.keys())
         for c in cols:
             self.dims[c].transition_hyper_grids(self.X[c])
 
     def transition_rows(self, rows=None):
         if rows is None:
-            rows = self.Zr().keys()
+            rows = list(self.Zr().keys())
         rows = self.rng.permutation(rows)
         for rowid in rows:
             self._gibbs_transition_row(rowid)
@@ -256,7 +257,7 @@ class View(CGpm):
 
     def logpdf_likelihood(self):
         """Compute the logpdf of the observations only."""
-        logp_dims = [dim.logpdf_score() for dim in self.dims.itervalues()]
+        logp_dims = [dim.logpdf_score() for dim in self.dims.values()]
         return sum(logp_dims)
 
     def logpdf_prior(self):
@@ -383,7 +384,7 @@ class View(CGpm):
 
     def build_network(self):
         return ImportanceNetwork(
-            cgpms=[self.crp.clusters[0]] + self.dims.values(),
+            cgpms=[self.crp.clusters[0]] + list(self.dims.values()),
             accuracy=1,
             rng=self.rng)
 
@@ -407,7 +408,7 @@ class View(CGpm):
 
     def _logpdf_row_gibbs(self, rowid, K):
         return [sum([self._logpdf_cell_gibbs(rowid, dim, k)
-            for dim in self.dims.itervalues()]) for k in K]
+            for dim in self.dims.values()]) for k in K]
 
     def _logpdf_cell_gibbs(self, rowid, dim, k):
         targets = {dim.index: self.X[dim.index][rowid]}
@@ -450,6 +451,9 @@ class View(CGpm):
         return len(self.Zr())
 
     def hypothetical(self, rowid):
+        # checking if its out of bounds
+        if rowid is None:
+            return True
         return not (0 <= rowid < len(self.Zr()))
 
     def _populate_constraints(self, rowid, targets, constraints):
@@ -486,7 +490,7 @@ class View(CGpm):
         dim.Zr = {}         # Mapping of non-nan rowids to cluster k.
         dim.Zi = {}         # Mapping of nan rowids to cluster k.
         dim.aux_model = dim.create_aux_model()
-        for rowid, k in self.Zr().iteritems():
+        for rowid, k in self.Zr().items():
             observation = {dim.index: self.X[dim.index][rowid]}
             inputs = self._get_input_values(rowid, dim, k)
             dim.incorporate(rowid, observation, inputs)
@@ -537,7 +541,7 @@ class View(CGpm):
         rowids = range(self.n_rows())
         assert set(Zr.keys()) == set(rowids)
         assert set(Zr.values()) == set(Nk)
-        for i, dim in self.dims.iteritems():
+        for i, dim in self.dims.items():
             # Assert first output is first input of the Dim.
             assert self.outputs[0] == dim.inputs[0]
             # Assert length of dataset is the same as rowids.
@@ -570,7 +574,7 @@ class View(CGpm):
         metadata['outputs'] = self.outputs
 
         # View partition data.
-        rowids = sorted(self.Zr().keys())
+        rowids = sorted(list(self.Zr().keys()))
         metadata['Zr'] = [self.Zr(i) for i in rowids]
         metadata['alpha'] = self.alpha()
 

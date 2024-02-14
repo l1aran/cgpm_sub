@@ -19,7 +19,7 @@ from math import log
 
 import numpy as np
 
-from cgpm.utils import general as gu
+from cgpm.src.utils import general as gu
 
 
 def mh_sample(

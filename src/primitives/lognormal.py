@@ -18,9 +18,9 @@ from math import log
 
 import numpy as np
 
-from cgpm.primitives.distribution import DistributionGpm
-from cgpm.primitives.normal import Normal
-from cgpm.utils import general as gu
+from cgpm.src.primitives.distribution import DistributionGpm
+from cgpm.src.primitives.normal import Normal
+from cgpm.src.utils import general as gu
 
 
 class Lognormal(DistributionGpm):

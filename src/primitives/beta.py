@@ -19,9 +19,9 @@ from math import log
 import numpy as np
 import scipy
 
-from cgpm.primitives.distribution import DistributionGpm
-from cgpm.utils import general as gu
-from cgpm.utils import sampling as su
+from cgpm.src.primitives.distribution import DistributionGpm
+from cgpm.src.utils import general as gu
+from cgpm.src.utils import sampling as su
 
 
 class Beta(DistributionGpm):

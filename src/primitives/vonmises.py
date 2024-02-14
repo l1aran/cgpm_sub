@@ -27,8 +27,8 @@ import numpy as np
 from scipy.special import i0 as bessel_0
 from scipy.special import i1 as bessel_1
 
-from cgpm.primitives.distribution import DistributionGpm
-from cgpm.utils import general as gu
+from cgpm.src.primitives.distribution import DistributionGpm
+from cgpm.src.utils import general as gu
 
 
 class Vonmises(DistributionGpm):

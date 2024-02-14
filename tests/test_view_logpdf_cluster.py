@@ -18,8 +18,8 @@ import pytest
 
 import numpy as np
 
-from cgpm.mixtures.view import View
-from cgpm.utils import general as gu
+from cgpm.src.mixtures.view import View
+from cgpm.src.utils import general as gu
 
 
 def retrieve_view():
@@ -55,6 +55,7 @@ def test_crp_prior_logpdf():
         expected_logpdf = cluster_logps[k]
         crp_logpdf = view.crp.clusters[0].logpdf(None, {view.outputs[0]: k})
         assert np.allclose(expected_logpdf, crp_logpdf)
+        print(view.outputs[0], k)
         view_logpdf = view.logpdf(None, {view.outputs[0]: k})
         assert np.allclose(view_logpdf, crp_logpdf)
 

@@ -36,10 +36,10 @@ This test suite is slow because many simulate/logpdf queries are invoked.
 import numpy as np
 import pytest
 
-from cgpm.crosscat.engine import Engine
-from cgpm.utils import config as cu
-from cgpm.utils import general as gu
-from cgpm.utils import test as tu
+from cgpm.src.crosscat.engine import Engine
+from cgpm.src.utils import config as cu
+from cgpm.src.utils import general as gu
+from cgpm.src.utils import test as tu
 
 
 @pytest.fixture(scope='module')

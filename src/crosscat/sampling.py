@@ -24,14 +24,14 @@ from itertools import chain
 
 import numpy as np
 
-from cgpm.primitives.crp import Crp
+from cgpm.src.primitives.crp import Crp
+          
+from cgpm.src.utils.general import log_normalize
+from cgpm.src.utils.general import log_pflip
+from cgpm.src.utils.general import logsumexp
+from cgpm.src.utils.general import merged
 
-from cgpm.utils.general import log_normalize
-from cgpm.utils.general import log_pflip
-from cgpm.utils.general import logsumexp
-from cgpm.utils.general import merged
-
-from cgpm.utils.validation import partition_query_evidence
+from cgpm.src.utils.validation import partition_query_evidence
 
 
 def state_logpdf(state, rowid, targets, constraints=None):
@@ -103,12 +103,13 @@ def _logpdf_row(view, targets, cluster):
     """Return joint density of the targets in a fixed cluster."""
     return sum(
         view.dims[c].logpdf(None, {c:x}, None, {view.outputs[0]: cluster})
-        for c, x in targets.iteritems()
+        for c, x in targets.items()
     )
 
 
 def _simulate_row(view, targets, cluster, N):
     """Return sample of the targets in a fixed cluster."""
+    print(targets)
     samples = (
         view.dims[c].simulate(None, [c], None, {view.outputs[0]: cluster}, N)
         for c in targets

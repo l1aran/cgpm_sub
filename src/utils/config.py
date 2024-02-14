@@ -23,19 +23,19 @@ import importlib
 
 
 cctype_class_lookup = {
-    'bernoulli'         : ('cgpm.primitives.bernoulli', 'Bernoulli'),
-    'beta'              : ('cgpm.primitives.beta', 'Beta'),
-    'categorical'       : ('cgpm.primitives.categorical', 'Categorical'),
-    'crp'               : ('cgpm.primitives.crp', 'Crp'),
-    'exponential'       : ('cgpm.primitives.exponential', 'Exponential'),
-    'geometric'         : ('cgpm.primitives.geometric', 'Geometric'),
-    'linear_regression' : ('cgpm.regressions.linreg', 'LinearRegression'),
-    'lognormal'         : ('cgpm.primitives.lognormal', 'Lognormal'),
-    'normal'            : ('cgpm.primitives.normal', 'Normal'),
-    'normal_trunc'      : ('cgpm.primitives.normal_trunc', 'NormalTrunc'),
-    'poisson'           : ('cgpm.primitives.poisson', 'Poisson'),
-    'random_forest'     : ('cgpm.regressions.forest', 'RandomForest'),
-    'vonmises'          : ('cgpm.primitives.vonmises', 'Vonmises'),
+    'bernoulli'         : ('cgpm.src.primitives.bernoulli', 'Bernoulli'),
+    'beta'              : ('cgpm.src.primitives.beta', 'Beta'),
+    'categorical'       : ('cgpm.src.primitives.categorical', 'Categorical'),
+    'crp'               : ('cgpm.src.primitives.crp', 'Crp'),
+    'exponential'       : ('cgpm.src.primitives.exponential', 'Exponential'),
+    'geometric'         : ('cgpm.src.primitives.geometric', 'Geometric'),
+    'linear_regression' : ('cgpm.src.regressions.linreg', 'LinearRegression'),
+    'lognormal'         : ('cgpm.src.primitives.lognormal', 'Lognormal'),
+    'normal'            : ('cgpm.src.primitives.normal', 'Normal'),
+    'normal_trunc'      : ('cgpm.src.primitives.normal_trunc', 'NormalTrunc'),
+    'poisson'           : ('cgpm.src.primitives.poisson', 'Poisson'),
+    'random_forest'     : ('cgpm.src.regressions.forest', 'RandomForest'),
+    'vonmises'          : ('cgpm.src.primitives.vonmises', 'Vonmises'),
 }
 
 # https://github.com/posterior/loom/blob/master/doc/using.md#input-format

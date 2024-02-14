@@ -20,8 +20,8 @@ import numpy as np
 
 from scipy.special import gammaln
 
-from cgpm.primitives.distribution import DistributionGpm
-from cgpm.utils import general as gu
+from cgpm.src.primitives.distribution import DistributionGpm
+from cgpm.src.utils import general as gu
 
 
 class Poisson(DistributionGpm):

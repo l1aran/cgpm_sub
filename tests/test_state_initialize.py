@@ -14,8 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from cgpm.crosscat.state import State
-from cgpm.utils import general as gu
+from cgpm.src.crosscat.state import State
+from cgpm.src.utils import general as gu
 
 def test_Zv_without_Zrv():
     rng = gu.gen_rng(2)

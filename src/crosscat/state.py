@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import cPickle as pickle
+import pickle
 import copy
 import importlib
 import itertools
@@ -27,18 +27,18 @@ from math import isnan
 
 import numpy as np
 
-from cgpm.cgpm import CGpm
-from cgpm.crosscat import sampling
-from cgpm.mixtures.dim import Dim
-from cgpm.mixtures.view import View
-from cgpm.network.helpers import retrieve_ancestors
-from cgpm.network.helpers import retrieve_variable_to_cgpm
-from cgpm.network.helpers import retrieve_weakly_connected_components
-from cgpm.network.importance import ImportanceNetwork
-from cgpm.utils import config as cu
-from cgpm.utils import general as gu
-from cgpm.utils import timer as tu
-from cgpm.utils import validation as vu
+from cgpm.src.cgpm import CGpm
+from cgpm.src.crosscat import sampling
+from cgpm.src.mixtures.dim import Dim
+from cgpm.src.mixtures.view import View
+from cgpm.src.network.helpers import retrieve_ancestors
+from cgpm.src.network.helpers import retrieve_variable_to_cgpm
+from cgpm.src.network.helpers import retrieve_weakly_connected_components
+from cgpm.src.network.importance import ImportanceNetwork
+from cgpm.src.utils import config as cu
+from cgpm.src.utils import general as gu
+from cgpm.src.utils import timer as tu
+from cgpm.src.utils import validation as vu
 
 
 class State(CGpm):
@@ -60,7 +60,7 @@ class State(CGpm):
         # -- Dataset and outputs -----------------------------------------------
         X = np.asarray(X)
         if not outputs:
-            outputs = range(X.shape[1])
+            outputs = list(range(X.shape[1]))
         else:
             assert len(outputs) == X.shape[1]
             assert all(o >= 0 for o in outputs)
@@ -96,7 +96,7 @@ class State(CGpm):
             if self.Ci or self.Cd:
                 # Require outputs are zero-based for now, rather than worry
                 # about maintaining a zero-based map.
-                if self.outputs != range(self.n_cols()):
+                if self.outputs != list(range(self.n_cols())):
                     raise ValueError('Use zero-based outputs with constraints.')
                 if self.Ci:
                     # Independence constraints are specified; simulate
@@ -119,7 +119,7 @@ class State(CGpm):
                     self.crp.incorporate(c, z, {-1:0})
         # Load the provided Zv without simulation.
         else:
-            for c, z in Zv.iteritems():
+            for c, z in Zv.items():
                 self.crp.incorporate(c, {self.crp_id: z}, {-1:0})
 
         assert len(self.Zv()) == len(self.outputs)
@@ -311,11 +311,11 @@ class State(CGpm):
             raise ValueError('Force observation requires existing rowid.')
         if not all(np.isnan(self.X[c][rowid]) for c in observation):
             raise ValueError('Force observations requires NaN cells.')
-        for col, value in observation.iteritems():
+        for col, value in observation.items():
             self.X[col][rowid] = value
         queries = vu.partition_list(
             {c: self.Zv(c) for c in observation}, observation)
-        for view_id, view_variables in queries.iteritems():
+        for view_id, view_variables in queries.items():
             observation_v = {c: observation[c] for c in view_variables}
             self.views[view_id].force_cell(rowid, observation_v)
 
@@ -466,11 +466,25 @@ class State(CGpm):
             if len(set.intersection(set(targets), set(constraints))) > 0:
                 raise ValueError('Targets and constraints must be disjoint.')
             # Disallow constraints specifying with observed cells.
+            # def good_constraint(rowid, e):
+            #     return \
+            #         e not in self.outputs \
+            #         or np.isnan(self.X[e][rowid]) \
+            #         or np.allclose(self.X[e][rowid], constraints[e])
+
+            # Handling None Type exception from 2.7:
             def good_constraint(rowid, e):
-                return \
-                    e not in self.outputs \
-                    or np.isnan(self.X[e][rowid]) \
-                    or np.allclose(self.X[e][rowid], constraints[e])
+                # Check if rowid is None and immediately return False if it is,
+                # as indexing with None is not intended in this context.
+                if rowid is None:
+                    return True
+
+                return (
+                        e not in self.outputs or
+                        np.isnan(self.X[e][rowid]) or
+                        np.allclose(self.X[e][rowid], constraints[e])
+                )
+
             if not fresh \
                     and any(not good_constraint(rowid, e) for e in constraints):
                 raise ValueError('Cannot use observed cell in constraints.')
@@ -482,11 +496,11 @@ class State(CGpm):
             inputs_list=None, Ns=None):
         """Evaluate multiple queries at once, used by Engine."""
         if constraints_list is None:
-            constraints_list = [{} for i in xrange(len(rowids))]
+            constraints_list = [{} for i in range(len(rowids))]
         if inputs_list is None:
-            inputs_list = [{} for i in xrange(len(rowids))]
+            inputs_list = [{} for i in range(len(rowids))]
         if Ns is None:
-            Ns = [1 for i in xrange(len(rowids))]
+            Ns = [1 for i in range(len(rowids))]
         assert len(rowids) == len(targets_list)
         assert len(rowids) == len(constraints_list)
         assert len(rowids) == len(inputs_list)
@@ -506,9 +520,9 @@ class State(CGpm):
             inputs_list=None):
         """Evaluate multiple queries at once, used by Engine."""
         if constraints_list is None:
-            constraints_list = [{} for i in xrange(len(rowids))]
+            constraints_list = [{} for i in range(len(rowids))]
         if inputs_list is None:
-            inputs_list = [{} for i in xrange(len(rowids))]
+            inputs_list = [{} for i in range(len(rowids))]
         assert len(rowids) == len(targets_list)
         assert len(rowids) == len(constraints_list)
         assert len(rowids) == len(inputs_list)
@@ -655,8 +669,8 @@ class State(CGpm):
         N = N or 100
         T = T or 100
         # Partition constraints into equality (e) and marginalization (m) forms.
-        e_constraints = {e:x for e,x in constraints.iteritems() if x is not None}
-        m_constraints = [e for e,x in constraints.iteritems() if x is None]
+        e_constraints = {e:x for e,x in constraints.items() if x is not None}
+        m_constraints = [e for e,x in constraints.items() if x is None]
         # Determine the estimator to use.
         estimator = self._compute_mi if set(col0) != set(col1) \
             else self._compute_entropy
@@ -820,7 +834,7 @@ class State(CGpm):
                 % (self.cctypes()))
         if any(d.is_conditional() for d in self.dims()):
             raise ValueError('Cannot transition lovecat with conditional dims.')
-        from cgpm.crosscat import lovecat
+        from cgpm.src.crosscat import lovecat
         seed = self.rng.randint(1, 2**31-1)
         lovecat.transition(
             self, N=N, S=S, kernels=kernels, rowids=rowids, cols=cols,
@@ -901,8 +915,8 @@ class State(CGpm):
             break
 
         if progress:
-            print '\rCompleted: %d iterations in %f seconds.' % \
-                (iters, time.time()-start)
+            print('\rCompleted: %d iterations in %f seconds.' % \
+                (iters, time.time()-start))
 
     def _increment_iterations(self, kernel, N=1):
         previous = self.diagnostics['iterations'].get(kernel, 0)
@@ -922,7 +936,8 @@ class State(CGpm):
 
     def data_array(self):
         """Return dataset as a numpy array."""
-        return np.asarray(self.X.values()).T
+        # return [list(val) for val in self.X.values()]
+        return [list(row) for row in zip(*self.X.values())]
 
     def n_rows(self):
         """Number of incorporated rows."""
@@ -1154,6 +1169,8 @@ class State(CGpm):
         self.views[identity] = view
 
     def hypothetical(self, rowid):
+        if rowid is None:
+            return False
         return not 0 <= rowid < self.n_rows()
 
     # --------------------------------------------------------------------------
@@ -1190,7 +1207,7 @@ class State(CGpm):
         metadata = dict()
 
         # Dataset.
-        metadata['X'] = self.data_array().tolist()
+        metadata['X'] = self.data_array()
         metadata['outputs'] = self.outputs
 
         # View partition data.
@@ -1218,7 +1235,7 @@ class State(CGpm):
         # View data.
         metadata['Zrv'] = []
         metadata['view_alphas'] = []
-        for v, view in self.views.iteritems():
+        for v, view in self.views.items():
             rowids = sorted(view.Zr())
             metadata['Zrv'].append((v, [view.Zr(i) for i in rowids]))
             metadata['view_alphas'].append((v, view.alpha()))
@@ -1228,7 +1245,7 @@ class State(CGpm):
 
         # Hooked CGPMs.
         metadata['hooked_cgpms'] = dict()
-        for token, cgpm in self.hooked_cgpms.iteritems():
+        for token, cgpm in self.hooked_cgpms.items():
             metadata['hooked_cgpms'][token] = cgpm.to_metadata()
 
         # Path of a Loom project.
@@ -1266,7 +1283,7 @@ class State(CGpm):
             rng=rng,
         )
         # Hook up the composed CGPMs.
-        for token, cgpm_metadata in metadata['hooked_cgpms'].iteritems():
+        for token, cgpm_metadata in metadata['hooked_cgpms'].items():
             builder = getattr(
                 importlib.import_module(cgpm_metadata['factory'][0]),
                 cgpm_metadata['factory'][1])
@@ -1284,5 +1301,5 @@ class State(CGpm):
         return cls.from_metadata(metadata, rng=rng)
 
 
-from cgpm.crosscat import statedoc
+from cgpm.src.crosscat import statedoc
 statedoc.load_docstrings(sys.modules[__name__])

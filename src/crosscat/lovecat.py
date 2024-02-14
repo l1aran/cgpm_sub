@@ -18,10 +18,19 @@ import sys
 
 import numpy as np
 
-from cgpm.mixtures.view import View
-from cgpm.utils import timer as tu
+from cgpm.src.mixtures.view import View
+from cgpm.src.utils import timer as tu
 
 
+def convert_to_string(item):
+    if isinstance(item, bytes):
+        return item.decode('utf-8')
+    elif isinstance(item, list):
+        return [convert_to_string(i) for i in item]
+    elif isinstance(item, dict):
+        return {convert_to_string(k): convert_to_string(v) for k, v in item.items()}
+    else:
+        return item
 def _crosscat_M_c(state):
     """Create M_c from cgpm.state.State"""
     T = state.X
@@ -35,25 +44,25 @@ def _crosscat_M_c(state):
 
     def create_metadata_numerical():
         return {
-            unicode('modeltype'): unicode('normal_inverse_gamma'),
-            unicode('value_to_code'): {},
-            unicode('code_to_value'): {},
+            str('modeltype'): str('normal_inverse_gamma'),
+            str('value_to_code'): {},
+            str('code_to_value'): {},
         }
     def create_metadata_categorical(col, k):
         categories = [v for v in sorted(set(T[col])) if not np.isnan(v)]
         assert all(0 <= c < k for c in categories)
-        codes = [unicode('%d') % (c,) for c in categories]
+        codes = [str('%d') % (c,) for c in categories]
         ncodes = range(len(codes))
         return {
-            unicode('modeltype'):
-                unicode('symmetric_dirichlet_discrete'),
-            unicode('value_to_code'):
-                dict(zip(map(unicode, ncodes), codes)),
-            unicode('code_to_value'):
+            str('modeltype'):
+                str('symmetric_dirichlet_discrete'),
+            str('value_to_code'):
+                dict(zip(map(str, ncodes), codes)),
+            str('code_to_value'):
                 dict(zip(codes, ncodes)),
         }
 
-    column_names = [unicode('c%d') % (i,) for i in outputs]
+    column_names = [str('c%d') % (i,) for i in outputs]
     # Convert all numerical datatypes to normal for lovecat.
     column_metadata = [
         create_metadata_numerical() if cctype != 'categorical' else\
@@ -62,11 +71,11 @@ def _crosscat_M_c(state):
     ]
 
     return {
-        unicode('name_to_idx'):
+        str('name_to_idx'):
             dict(zip(column_names, range(ncols))),
-        unicode('idx_to_name'):
-            dict(zip(map(unicode, range(ncols)), column_names)),
-        unicode('column_metadata'):
+        str('idx_to_name'):
+            dict(zip(map(str, range(ncols)), column_names)),
+        str('column_metadata'):
             column_metadata,
     }
 
@@ -81,8 +90,8 @@ def _crosscat_T(state, M_c):
         # need to do code->value.
         lookup = M_c['column_metadata'][col]['code_to_value']
         if lookup:
-            assert unicode(int(val)) in lookup
-            return float(lookup[unicode(int(val))])
+            assert str(int(val)) in lookup
+            return float(lookup[str(int(val))])
         else:
             return val
     ordering = state.outputs
@@ -127,11 +136,11 @@ def _crosscat_X_L(state, M_c, X_D):
     def column_hypers_numerical(index, hypers):
         assert state.cctypes()[index] != 'categorical'
         return {
-            unicode('fixed'): 0.0,
-            unicode('mu'): hypers['m'],
-            unicode('nu'): hypers['nu'],
-            unicode('r'): hypers['r'],
-            unicode('s'): hypers['s'],
+            str('fixed'): 0.0,
+            str('mu'): hypers['m'],
+            str('nu'): hypers['nu'],
+            str('r'): hypers['r'],
+            str('s'): hypers['s'],
         }
 
     def column_hypers_categorical(index, hypers):
@@ -139,9 +148,9 @@ def _crosscat_X_L(state, M_c, X_D):
         K = len(M_c['column_metadata'][index]['code_to_value'])
         assert K > 0
         return {
-            unicode('fixed'): 0.0,
-            unicode('dirichlet_alpha'): hypers['alpha'],
-            unicode('K'): K
+            str('fixed'): 0.0,
+            str('dirichlet_alpha'): hypers['alpha'],
+            str('K'): K
         }
 
     # Retrieve the column_hypers.
@@ -162,9 +171,9 @@ def _crosscat_X_L(state, M_c, X_D):
     counts = list(np.bincount(views_remapped))
     assert 0 not in counts
     column_partition = {
-        unicode('assignments'): views_remapped,
-        unicode('counts'): counts,
-        unicode('hypers'): {unicode('alpha'): state.alpha()}
+        str('assignments'): views_remapped,
+        str('counts'): counts,
+        str('hypers'): {str('alpha'): state.alpha()}
     }
 
     # -- Generates X_L['view_state'] --
@@ -174,25 +183,25 @@ def _crosscat_X_L(state, M_c, X_D):
         # Generate X_L['view_state'][v]['column_component_suffstats']
         numcategories = len(set(row_partition))
         column_component_suffstats = [
-            [{} for c in xrange(numcategories)]
+            [{} for c in range(numcategories)]
             for d in view.dims]
 
         # Generate X_L['view_state'][v]['column_names']
         column_names = \
-            [unicode('c%d' % (o,)) for o in view.outputs[1:]]
+            [str('c%d' % (o,)) for o in view.outputs[1:]]
 
         # Generate X_L['view_state'][v]['row_partition_model']
         counts = list(np.bincount(row_partition))
         assert 0 not in counts
 
         return {
-            unicode('column_component_suffstats'):
+            str('column_component_suffstats'):
                 column_component_suffstats,
-            unicode('column_names'):
+            str('column_names'):
                 column_names,
-            unicode('row_partition_model'): {
-                unicode('counts'): counts,
-                unicode('hypers'): {unicode('alpha'): view.alpha()}
+            str('row_partition_model'): {
+                str('counts'): counts,
+                str('hypers'): {str('alpha'): view.alpha()}
             }
         }
 
@@ -209,21 +218,25 @@ def _crosscat_X_L(state, M_c, X_D):
             for block in state.Cd for column in block
         }
     if state.Ci:
-        from crosscat.utils.general_utils import get_scc_from_tuples
+        from crosscat.src.utils.general_utils import get_scc_from_tuples
         col_ensure['independent'] = {
             str(column) : list(block) for
             column, block in get_scc_from_tuples(state.Ci).iteritems()
         }
 
     return {
-        unicode('column_hypers'): column_hypers,
-        unicode('column_partition'): column_partition,
-        unicode('view_state'): view_states,
-        unicode('col_ensure'): col_ensure
+        str('column_hypers'): column_hypers,
+        str('column_partition'): column_partition,
+        str('view_state'): view_states,
+        str('col_ensure'): col_ensure
     }
 
 
 def _update_state(state, M_c, X_L, X_D):
+
+    # pre process X_L to convert
+    X_L = {convert_to_string(k): convert_to_string(v) for k, v in X_L.items()}
+
     # Perform checking on M_c.
     assert all(c in ['normal','categorical'] for c in state.cctypes())
     assert len(M_c['name_to_idx']) == len(state.outputs)
@@ -231,7 +244,7 @@ def _update_state(state, M_c, X_L, X_D):
         reference = 'normal_inverse_gamma' if state.cctypes()[i] == 'normal'\
             else 'symmetric_dirichlet_discrete'
         return M_c['column_metadata'][i]['modeltype'] == reference
-    assert all(_check_model_type(i) for i in xrange(len(state.cctypes())))
+    assert all(_check_model_type(i) for i in range(len(state.cctypes())))
     # Perform checking on X_D.
     assert all(len(partition)==state.n_rows() for partition in X_D)
     assert len(X_D) == len(X_L['view_state'])
@@ -250,7 +263,7 @@ def _update_state(state, M_c, X_L, X_D):
     # Create the new views.
     offset = max(state.views) + 1
     new_views = []
-    for v in xrange(len(X_D)):
+    for v in range(len(X_D)):
         alpha = X_L['view_state'][v]['row_partition_model']['hypers']['alpha']
         index = v + offset
 
@@ -317,8 +330,8 @@ def _update_diagnostics(state, diagnostics):
 
 def _progress(n_steps, max_time, step_idx, elapsed_secs, end=None):
     if end:
-        print '\rCompleted: %d iterations in %f seconds.' %\
-            (step_idx, elapsed_secs)
+        print('\rCompleted: %d iterations in %f seconds.' %\
+            (step_idx, elapsed_secs))
     else:
         p_seconds = elapsed_secs / max_time if max_time != -1 else 0
         p_iters = float(step_idx) / n_steps
@@ -374,7 +387,7 @@ def transition(
     X_D = _crosscat_X_D(state, M_c)
     X_L = _crosscat_X_L(state, M_c, X_D)
 
-    from crosscat.LocalEngine import LocalEngine
+    from crosscat.src.LocalEngine import LocalEngine
     LE = LocalEngine(seed=seed)
 
     if checkpoint is None:
